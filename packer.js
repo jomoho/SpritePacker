@@ -1,12 +1,13 @@
 var fs = require('fs'),
-	Canvas = require('canvas');
+	Canvas = require('canvas'),
+	Image = Canvas.Image;
 
-// The sprite packer
-function packer(){
+// The sprite Packer
+function Packer() {
 	this.sheets = [];
 }
 
-packer.prototype.parse = function(stream) {
+Packer.prototype.parseText = function (stream) {
 	var sprites = stream.split(' ');
 	var tmp;
 	for (var i = 0; i < sprites.length; i++) {
@@ -16,33 +17,47 @@ packer.prototype.parse = function(stream) {
 	return sprites;
 };
 
-packer.prototype.run = function(stream) {
-	var sprites = this.parse(stream);
+Packer.prototype.runText = function (stream) {
+	var sprites = this.parseText(stream);
 	this.pack(sprites);
 	console.log(this.toString());
 };
 
-packer.prototype.pack = function(sprites) {
+Packer.prototype.run = function (images, width, height) {
+	this.sprites = [];
+	var sprites = this.sprites;
+	
+	images.forEach(function (val, index, array) {
+		var img = new Image();
+		img.src = val;
+		sprites.push(img);
+	});
+
+	this.pack(sprites);
+	console.log(this.toString());
+};
+
+Packer.prototype.pack = function (sprites, width, height) {
 	if(sprites.length === 0){
 		return true;
 	}
 
-	this.currentsheet = new sheet();
-	this.sheets.push(this.currentsheet);
+	this.currentSheet = new Sheet(width, height);
+	this.sheets.push(this.currentSheet);
 
 	sprites.sort(function(a,b){
 		return b.height - a.height;
 	});
 	var nextsprites = [];
 	for (var i = 0; i < sprites.length; i++) {
-		if( this.currentsheet.pack(sprites[i]) === false){
+		if( this.currentSheet.pack(sprites[i]) === false){
 			nextsprites.push(sprites[i]);
 		}
 	}
 	return this.pack(nextsprites);
 };
 
-packer.prototype.toString = function() {
+Packer.prototype.toString = function() {
 	var res = '';
 	for (var i = 0; i < this.sheets.length; i++) {
 		res += 'sheet '+ (i+1) +'\n';
@@ -51,13 +66,13 @@ packer.prototype.toString = function() {
 	return res;
 };
 
-packer.prototype.exportpng = function() {
+Packer.prototype.pngExport = function() {
 	for (var i = 0; i < this.sheets.length; i++) {
-		this.sheets[i].savepng(__dirname + '/sheet'+(i+1)+'.png');
+		this.sheets[i].pngSave(__dirname + '/sheet'+(i+1)+'.png');
 	}
 };
 
-packer.prototype.svg = function() {
+Packer.prototype.svgExport = function() {
 	res = '';
 	for (var i = 0; i < this.sheets.length; i++) {
 		res += this.sheets[i].svg();
@@ -65,15 +80,15 @@ packer.prototype.svg = function() {
 	return res;
 };
 
-//The Sprite sheet aka a single texture
-function sheet(){
-	this.width = 1024;
-	this.height = 1024;
+//The Sprite Sheet aka a single texture
+function Sheet(width, height){
+	this.width = width || 1024;
+	this.height = height || 1024;
 	this.lines = [];
 	this.lines.push([]);
 }
 
-sheet.prototype.posheight = function(x, line) {
+Sheet.prototype.posHeight = function(x, line) {
 	if(line < 1){
 		return 0;
 	} else{
@@ -88,9 +103,9 @@ sheet.prototype.posheight = function(x, line) {
 	}
 };
 
-sheet.prototype.findline = function(width) {
+Sheet.prototype.findLine = function(width) {
 	for (var i = 0; i < this.lines.length; i++) {
-		if(this.lineright(i) + width < this.width){
+		if(this.lineRight(i) + width < this.width){
 			return i;
 		}
 	}
@@ -98,7 +113,7 @@ sheet.prototype.findline = function(width) {
 	return this.lines.length-1;
 };
 
-sheet.prototype.lineright = function(line) {
+Sheet.prototype.lineRight = function(line) {
 	var xpos = 0;
 	for (var i = 0; i < this.lines[line].length; i++) {
 		xpos += this.lines[line][i].width;
@@ -106,13 +121,13 @@ sheet.prototype.lineright = function(line) {
 	return xpos;
 };
 
-sheet.prototype.pack = function(sprite) {
+Sheet.prototype.pack = function(sprite) {
 	if( sprite.width > this.width || sprite.height > this.height){
 		throw new Error('Couldn\'t pack sprite, it is to big for sheet size');
 	}
-	var line = this.findline(sprite.width);
-	var x = this.lineright(line);
-	var y = this.posheight(x, line);
+	var line = this.findLine(sprite.width);
+	var x = this.lineRight(line);
+	var y = this.posHeight(x, line);
 
 	if( y + sprite.height < this.height){
 		var newsprite = {
@@ -127,7 +142,7 @@ sheet.prototype.pack = function(sprite) {
 	return false;
 };
 
-sheet.prototype.toString = function() {
+Sheet.prototype.toString = function() {
 	var res = '';
 	var sprite;
 	for (var i = 0; i < this.lines.length; i++) {
@@ -139,7 +154,7 @@ sheet.prototype.toString = function() {
 	return res+'\n';
 };
 
-sheet.prototype.savepng = function(filename) {
+Sheet.prototype.pngSave = function(filename) {
 	var canvas = new Canvas(this.width, this.height),
 	out = fs.createWriteStream(filename),
 	stream = canvas.pngStream();
@@ -160,10 +175,10 @@ sheet.prototype.savepng = function(filename) {
 	});
 
 	//draw
-	this.drawcanvas(canvas);
+	this.drawCanvas(canvas);
 };
 
-sheet.prototype.drawcanvas = function(canvas) {
+Sheet.prototype.drawCanvas = function(canvas) {
 	var ctx = canvas.getContext('2d');
 
 	//fill background
@@ -181,7 +196,7 @@ sheet.prototype.drawcanvas = function(canvas) {
 	}
 };
 
-sheet.prototype.svg = function(){
+Sheet.prototype.svgExport = function(){
 	//draw all sprites
 	var sprite, res = '';
 
@@ -205,4 +220,4 @@ var clr = function(){
 	return 'rgb('+Math.floor(128+Math.random()*128)+','+Math.floor(Math.random()*64)+','+Math.floor(Math.random()*128)+')';
 };
 
-module.exports = new packer();
+module.exports = new Packer();
