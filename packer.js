@@ -1,5 +1,5 @@
-//var fs = require('fs'),
-//	Canvas = require('canvas');
+var fs = require('fs'),
+	Canvas = require('canvas');
 
 // The sprite packer
 function packer(){
@@ -144,6 +144,8 @@ sheet.prototype.savepng = function(filename) {
 	out = fs.createWriteStream(filename),
 	stream = canvas.pngStream();
 
+	var ctx = canvas.getContext('2d');
+	
 	//fill background
 	ctx.fillStyle="#FFFFFF";
 	ctx.fillRect(0, 0, this.width, this.height);
@@ -203,4 +205,4 @@ var clr = function(){
 	return 'rgb('+Math.floor(128+Math.random()*128)+','+Math.floor(Math.random()*64)+','+Math.floor(Math.random()*128)+')';
 };
 
-//module.exports = new packer();
+module.exports = new packer();
