@@ -33,7 +33,7 @@ Packer.prototype.run = function (images, width, height) {
 		sprites.push(img);
 	});
 
-	this.pack(sprites);
+	this.pack(sprites, width, height);
 	console.log(this.toString());
 };
 
