@@ -12,5 +12,14 @@ process.argv.forEach(function (val, index, array) {
   console.log(index + ': ' + val);
 });
 
-packer.runText('864x480 78x107 410x321 188x167 315x274 229x163 629x236 39x32 193x56 543x155');
+
+var images = [];
+
+for (var i = 1; i < 24; i++) {
+	images.push('./images/' + (i < 10? '0':'') + i + '.png');
+}
+
+//packer.runText('864x480 78x107 410x321 188x167 315x274 229x163 629x236 39x32 193x56 543x155');
+packer.run(images, 2048, 2048, 0.3);
+console.log(packer.toCss());
 packer.pngExport();

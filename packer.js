@@ -23,17 +23,24 @@ Packer.prototype.runText = function (stream) {
 	console.log(this.toString());
 };
 
-Packer.prototype.run = function (images, width, height) {
+Packer.prototype.run = function (files, width, height, scale) {
 	this.sprites = [];
 	var sprites = this.sprites;
-	
-	images.forEach(function (val, index, array) {
+	scale = scale || 1;
+
+	files.forEach(function (val, index, array) {
 		var img = new Image();
-		img.src = val;
-		sprites.push(img);
+		img.src = fs.readFileSync(val);
+		var sprite = {
+			name: val.substring(1 + val.lastIndexOf('/'), val.length-4),
+			width: Math.floor(img.width * scale),
+			height: Math.floor(img.height * scale),
+			img : img
+		};
+		sprites.push(sprite);
 	});
 
-	this.pack(sprites, width, height);
+	this.pack(sprites, width, height, scale);
 	console.log(this.toString());
 };
 
@@ -54,7 +61,7 @@ Packer.prototype.pack = function (sprites, width, height) {
 			nextsprites.push(sprites[i]);
 		}
 	}
-	return this.pack(nextsprites);
+	return this.pack(nextsprites, width, height);
 };
 
 Packer.prototype.toString = function() {
@@ -66,19 +73,20 @@ Packer.prototype.toString = function() {
 	return res;
 };
 
+Packer.prototype.toCss = function() {
+	var res = '';
+	for (var i = 0; i < this.sheets.length; i++) {
+		res += this.sheets[i].toCss('./sheet'+ (i+1) +'.png');
+	}
+	return res;
+};
+
 Packer.prototype.pngExport = function() {
 	for (var i = 0; i < this.sheets.length; i++) {
 		this.sheets[i].pngSave(__dirname + '/sheet'+(i+1)+'.png');
 	}
 };
 
-Packer.prototype.svgExport = function() {
-	res = '';
-	for (var i = 0; i < this.sheets.length; i++) {
-		res += this.sheets[i].svg();
-	}
-	return res;
-};
 
 //The Sprite Sheet aka a single texture
 function Sheet(width, height){
@@ -134,9 +142,13 @@ Sheet.prototype.pack = function(sprite) {
 			x: x,
 			y: y,
 			width: sprite.width,
-			height: sprite.height
+			height: sprite.height,
+			img: sprite.img
 		};
-		this.lines[line].push(newsprite);
+
+		sprite.x = x;
+		sprite.y = y;
+		this.lines[line].push(sprite);
 		return true;
 	}
 	return false;
@@ -154,16 +166,26 @@ Sheet.prototype.toString = function() {
 	return res+'\n';
 };
 
+Sheet.prototype.toCss = function(filename) {
+	var res = '';
+
+	var sprite;
+	for (var i = 0; i < this.lines.length; i++) {
+		for (var j = 0; j < this.lines[i].length; j++) {
+			sprite = this.lines[i][j];
+			res +=  '.sprite-' + sprite.name+ ' {\n';
+			res	+= 'background: url(\'' + filename + '\') no-repeat -' + sprite.x + 'px -' + sprite.y + 'px;\n';
+			res	+= 'width: ' + sprite.width + 'px\n';
+			res	+= 'height: ' + sprite.height + 'px\n}\n';
+		}
+	}
+	return res+'\n';
+};
+
 Sheet.prototype.pngSave = function(filename) {
 	var canvas = new Canvas(this.width, this.height),
 	out = fs.createWriteStream(filename),
 	stream = canvas.pngStream();
-
-	var ctx = canvas.getContext('2d');
-	
-	//fill background
-	ctx.fillStyle="#FFFFFF";
-	ctx.fillRect(0, 0, this.width, this.height);
 
 	//output stream
 	stream.on('data', function(chunk){
@@ -181,43 +203,14 @@ Sheet.prototype.pngSave = function(filename) {
 Sheet.prototype.drawCanvas = function(canvas) {
 	var ctx = canvas.getContext('2d');
 
-	//fill background
-	ctx.fillStyle="#FFFFFF";
-	ctx.fillRect(0, 0, this.width, this.height);
-
 	//draw all sprites
 	var sprite;
 	for (var i = 0; i < this.lines.length; i++) {
 		for (var j = 0; j < this.lines[i].length; j++) {
 			sprite = this.lines[i][j];
-			ctx.fillStyle = clr();
-			ctx.fillRect(sprite.x ,sprite.y, sprite.width, sprite.height);
+			ctx.drawImage(sprite.img, sprite.x, sprite.y, sprite.width , sprite.height);
 		}
 	}
-};
-
-Sheet.prototype.svgExport = function(){
-	//draw all sprites
-	var sprite, res = '';
-
-	//svg
-	res += '<svg xmlns="http://www.w3.org/2000/svg" ';
-	res += 'style="width:'+this.width+'px; height:'+this.height+'px; border: 1px solid black;" version="1.1">';
-
-	for (var i = 0; i < this.lines.length; i++) {
-		for (var j = 0; j < this.lines[i].length; j++) {
-			sprite = this.lines[i][j];
-			res += '<rect x="'+sprite.x+'" y="'+sprite.y+'" ';
-			res += 'width="'+ sprite.width +'" height="'+sprite.height+'" ';
-			res += 'style="fill:'+clr()+';"/>';
-		}
-	}
-	return res + '</svg>';
-}
-
-//random color
-var clr = function(){
-	return 'rgb('+Math.floor(128+Math.random()*128)+','+Math.floor(Math.random()*64)+','+Math.floor(Math.random()*128)+')';
 };
 
 module.exports = new Packer();
