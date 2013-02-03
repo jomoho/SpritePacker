@@ -1,0 +1,30 @@
+{
+  "name": "spritepacker",
+  "preferGlobal": true,
+  "version": "0.1.0",
+  "author": "Moritz Laass <moritz.laass@jomoho.com>",
+  "description": "Command Line tool to pack multiple sprites into a single image.",
+  "main": "./lib/main",
+  "bin": {
+    "spritepacker": "./bin/spritepacker"
+  },
+  "dependencies": {
+    "canvas": "~1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node ./test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jomoho/SpritePacker.git"
+  },
+  "keywords": [
+    "sprites",
+    "spritepacker",
+    "css",
+    "gamedev"
+  ],
+  "license": "MIT",
+  "gitHead": "ce4458b851c1cf1a43644fec785b44f3ef366c1c"
+}
